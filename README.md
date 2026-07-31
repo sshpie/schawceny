@@ -41,14 +41,53 @@ Cloudflare.
 See [`docs/CAPTURE_METHODS.md`](docs/CAPTURE_METHODS.md) for details and
 [`docs/PROTOCOL.md`](docs/PROTOCOL.md) for the WebSocket protocol.
 
-## How it works (one paragraph)
+## How it works
 
-`window.WebSocket` is subclassed before the app loads. When a socket to
-`/api/ws/voice/...` is constructed, a `message` listener collects binary frames
-(`ArrayBuffer`/`Blob`) as raw PCM and parses `tts_word` JSON for the transcript.
-Each frame resets a 1.5 s silence timer; when it fires, the accumulated frames
-finalize into one turn and a WAV is emitted. That silence-debounce cleanly separates
-conversational turns while holding long single turns together.
+### What's on the wire
+
+Voice mode keeps a single WebSocket open to
+`wss://claude.ai/api/ws/voice/organizations/{ORG_ID}/chat_conversations/{CONV_ID}`.
+Open DevTools → **Network** → filter **Socket** → click the connection → **Messages**,
+and you can watch the exact frames Schwaceny reads:
+
+![DevTools showing the voice WebSocket frames: tts_word JSON interleaved with 320-byte binary PCM messages](docs/images/devtools-ws-frames-1.png)
+
+Two inbound frame types are interleaved (the ⬇ green/red arrows are server→client):
+
+- **`Binary Message`, 320 B** — one 10 ms slice of raw 16 kHz/16-bit/mono PCM. This
+  *is* the synthesized voice. The panel's hex view at the bottom shows the raw sample
+  bytes. String these together and you have the audio.
+- **`{"type":"tts_word","text":" honestly","pts_ms":51774}`** — the word the voice is
+  speaking and its presentation timestamp. Concatenate the `text` fields in order and
+  you have the exact transcript, already aligned to the audio.
+
+The small outbound (⬆) binary frames (35–48 B) are your microphone going up as Opus.
+There is **no text-input frame** — the socket only synthesizes speech in response to
+speech (see [`docs/PROTOCOL.md`](docs/PROTOCOL.md)).
+
+![More of the same stream scrolled forward — the 320-byte PCM messages and tts_word frames continue in lockstep](docs/images/devtools-ws-frames-2.png)
+
+### What the tap does with them
+
+1. **Wrap the constructor.** Before claude.ai's app code runs, Schwaceny replaces
+   `window.WebSocket` with a subclass. Any socket whose URL contains `/api/ws/voice/`
+   gets a `message` listener attached at construction — so nothing is missed from
+   frame zero. (This is why the userscript uses `@run-at document-start`.)
+2. **Sort each frame.** In the listener: `ArrayBuffer`/`Blob` → push the bytes onto the
+   current turn's PCM buffer; a string that parses to `{"type":"tts_word"}` → push its
+   `text` onto the transcript buffer. Everything else is ignored.
+3. **Segment turns by silence.** Every PCM frame resets a 1.5 s timer. When 1.5 s pass
+   with no new audio, the current turn is *finalized*: the PCM buffer is framed into a
+   WAV (concatenate the 320-byte chunks, prepend a 44-byte header) and emitted alongside
+   the concatenated transcript, then both buffers reset for the next turn. This cleanly
+   splits back-to-back turns while holding a single long turn together (the sample set
+   has a 98.7 s count-to-100 captured unbroken, because it never had a 1.5 s gap).
+4. **Emit.** Depending on the variant, "emit" means a browser download (userscript),
+   an array you drain (Playwright), or a Python callback that writes to disk
+   (`schwaceny_cdp.py`). The capture logic is identical across all three.
+
+Nothing is ever sent on the socket — the tap is read-only. See
+[`docs/CAPTURE_METHODS.md`](docs/CAPTURE_METHODS.md) for running each variant.
 
 ## Samples
 
