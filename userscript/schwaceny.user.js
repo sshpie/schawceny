@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Schawceny — Claude Voice Capture
-// @namespace    schawceny
+// @name         Schwaceny — Claude Voice Capture
+// @namespace    schwaceny
 // @version      1.0
 // @description  Capture claude.ai voice-mode TTS audio (the synthesized voice you hear) to WAV + transcript, from your own authenticated browser session. Zero console interaction, no toggling.
 // @match        https://claude.ai/*
@@ -12,8 +12,8 @@
   const SR = 16000;                 // output_format=pcm_16000
   const SILENCE_MS = 1500;          // gap of silence that ends a turn
   const Orig = window.WebSocket;
-  if (window.__schawcenyInstalled) return;
-  window.__schawcenyInstalled = true;
+  if (window.__schwacenyInstalled) return;
+  window.__schwacenyInstalled = true;
 
   const state = {
     seg: [], segWords: [], all: [], allWords: [], turnN: 0,
@@ -85,15 +85,15 @@
   // ---- floating control panel ----
   let ui = {};
   function buildUI() {
-    if (document.getElementById('schawceny')) return;
-    const p = document.createElement('div'); p.id = 'schawceny';
+    if (document.getElementById('schwaceny')) return;
+    const p = document.createElement('div'); p.id = 'schwaceny';
     p.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:2147483647;font:12px/1.4 system-ui,sans-serif;'
       + 'background:#16181c;color:#e6e6e6;border:1px solid #2a2d34;border-radius:10px;padding:10px 12px;width:220px;'
       + 'box-shadow:0 6px 24px rgba(0,0,0,.4);user-select:none';
     p.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span id="sch-dot" style="width:9px;height:9px;border-radius:50%;background:#555;display:inline-block"></span>
-        <b style="font-weight:600">Schawceny</b>
+        <b style="font-weight:600">Schwaceny</b>
       </div>
       <div id="sch-stat" style="color:#9aa0aa;margin-bottom:8px">idle — start a voice turn</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
@@ -127,9 +127,9 @@
       ? `● recording · turn ${state.turnN + 1} · ${secs(state.seg)}s`
       : `idle · ${state.turnN} turn(s) · ${secs(state.all)}s total`;
   }
-  function log(msg) { console.log('[schawceny]', msg); if (ui.stat) { ui.stat.textContent = msg; setTimeout(render, 2500); } }
+  function log(msg) { console.log('[schwaceny]', msg); if (ui.stat) { ui.stat.textContent = msg; setTimeout(render, 2500); } }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildUI);
   else buildUI();
-  console.log('[schawceny] installed at document-start — no toggle needed');
+  console.log('[schwaceny] installed at document-start — no toggle needed');
 })();

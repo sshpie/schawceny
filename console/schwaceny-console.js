@@ -1,18 +1,18 @@
-/* Schawceny (console variant) — intercept claude.ai voice-mode inbound audio -> WAV + transcript.
+/* Schwaceny (console variant) — intercept claude.ai voice-mode inbound audio -> WAV + transcript.
    Paste into DevTools console on claude.ai, then toggle voice mode OFF then ON (so the tapped
    WebSocket is the one the app opens). After a spoken turn:
-     __schawceny.save()        // whole session -> WAV download
-     __schawceny.save('last')  // just the last turn
-     __schawceny.transcript()  // the tts_word text
-     __schawceny.clear()
+     __schwaceny.save()        // whole session -> WAV download
+     __schwaceny.save('last')  // just the last turn
+     __schwaceny.transcript()  // the tts_word text
+     __schwaceny.clear()
    For a zero-interaction, auto-download-per-turn experience, use the Tampermonkey userscript
-   in ../userscript/schawceny.user.js instead (installs at document-start, no toggle needed). */
+   in ../userscript/schwaceny.user.js instead (installs at document-start, no toggle needed). */
 (() => {
-  if (window.__schawcenyInstalled) { console.log('[schawceny] already installed'); return; }
-  window.__schawcenyInstalled = true;
+  if (window.__schwacenyInstalled) { console.log('[schwaceny] already installed'); return; }
+  window.__schwacenyInstalled = true;
 
   const Orig = window.WebSocket;
-  const cap = window.__schawceny = { chunks: [], words: [], text: '', turns: [0], sampleRate: 16000 };
+  const cap = window.__schwaceny = { chunks: [], words: [], text: '', turns: [0], sampleRate: 16000 };
 
   function assembleWav(byteArrays, sampleRate) {
     const total = byteArrays.reduce((a, b) => a + b.length, 0);
@@ -30,23 +30,23 @@
     const arr = (which === 'last'
       ? cap.chunks.slice(cap.turns[cap.turns.length - 1])
       : cap.chunks).map(c => c.bytes);
-    if (!arr.length) { console.warn('[schawceny] no audio captured yet'); return; }
+    if (!arr.length) { console.warn('[schwaceny] no audio captured yet'); return; }
     const blob = assembleWav(arr, cap.sampleRate);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `claude-voice-${which}-${Date.now()}.wav`;
     a.click();
     const secs = (arr.reduce((x, b) => x + b.length, 0) / (cap.sampleRate * 2)).toFixed(1);
-    console.log(`[schawceny] saved ${arr.length} frames (~${secs}s)`);
+    console.log(`[schwaceny] saved ${arr.length} frames (~${secs}s)`);
   };
   cap.transcript = () => cap.words.map(w => w.text).join('');
-  cap.clear = () => { cap.chunks = []; cap.words = []; cap.text = ''; cap.turns = [0]; console.log('[schawceny] cleared'); };
+  cap.clear = () => { cap.chunks = []; cap.words = []; cap.text = ''; cap.turns = [0]; console.log('[schwaceny] cleared'); };
 
   class TappedWS extends Orig {
     constructor(url, protocols) {
       super(url, protocols);
       if (typeof url === 'string' && url.includes('/api/ws/voice/')) {
-        console.log('[schawceny] voice socket tapped:', url.slice(0, 90));
+        console.log('[schwaceny] voice socket tapped:', url.slice(0, 90));
         this.addEventListener('message', (ev) => {
           const d = ev.data;
           if (d instanceof ArrayBuffer) {
@@ -68,5 +68,5 @@
     }
   }
   window.WebSocket = TappedWS;
-  console.log('[schawceny] installed. Toggle voice mode OFF then ON, speak, then run __schawceny.save()');
+  console.log('[schwaceny] installed. Toggle voice mode OFF then ON, speak, then run __schwaceny.save()');
 })();

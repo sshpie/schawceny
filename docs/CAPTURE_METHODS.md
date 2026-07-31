@@ -1,4 +1,4 @@
-# Schawceny — capture methods
+# Schwaceny — capture methods
 
 Three ways to run the same tap. They all wrap `window.WebSocket`, key on the
 `/api/ws/voice/` endpoint, collect the inbound 320-byte PCM frames, and assemble
@@ -12,7 +12,7 @@ to your tab; it sends nothing.
 
 ## 1. Userscript (recommended — zero interaction, Cloudflare-proof)
 
-`userscript/schawceny.user.js`
+`userscript/schwaceny.user.js`
 
 1. Install Tampermonkey (or Violentmonkey) in your normal browser.
 2. Add the userscript. It is `@match https://claude.ai/*` and `@run-at document-start`,
@@ -27,15 +27,15 @@ Because it runs in your real browser, it never touches Cloudflare Turnstile.
 
 ## 2. Console snippet (quick, no install)
 
-`console/schawceny-console.js`
+`console/schwaceny-console.js`
 
 Paste into DevTools console on claude.ai, then toggle voice mode **off then on** so
 the socket the app opens is the wrapped one. After a turn:
 
 ```js
-__schawceny.save()        // whole session -> WAV
-__schawceny.save('last')  // last turn only
-__schawceny.transcript()  // tts_word text
+__schwaceny.save()        // whole session -> WAV
+__schwaceny.save('last')  // last turn only
+__schwaceny.transcript()  // tts_word text
 ```
 
 ---
@@ -51,7 +51,7 @@ Inject the tap and drain it.
 
 ```js
 // browser_run_code_unsafe (Playwright server, has `page`)
-await page.addInitScript(TAP);                 // TAP = the wrapper, draining into window.__schawcenyTurns
+await page.addInitScript(TAP);                 // TAP = the wrapper, draining into window.__schwacenyTurns
 await page.goto('https://claude.ai/new', { waitUntil: 'domcontentloaded' });
 ```
 
@@ -65,7 +65,7 @@ await page.context().grantPermissions(['microphone'], { origin: 'https://claude.
 
 ```js
 // browser_evaluate, saving the (JSON-encoded) result straight to disk
-() => { const t = (window.__schawcenyTurns||[]).slice(); window.__schawcenyTurns=[]; return JSON.stringify(t); }
+() => { const t = (window.__schwacenyTurns||[]).slice(); window.__schwacenyTurns=[]; return JSON.stringify(t); }
 ```
 
 Decode host-side (note the result is JSON-encoded, so parse twice):
@@ -78,13 +78,13 @@ for t in turns:
     open(f"turn{t['n']}.wav", 'wb').write(base64.b64decode(t['b64']))
 ```
 
-The drain-into-a-global variant of the tap (`window.__schawcenyTurns.push(...)`)
+The drain-into-a-global variant of the tap (`window.__schwacenyTurns.push(...)`)
 is what you use when you cannot expose a Python binding to the page. When you *can*
-(a standalone script), use `expose_binding` instead — see `playwright/schawceny_cdp.py`.
+(a standalone script), use `expose_binding` instead — see `playwright/schwaceny_cdp.py`.
 
 ### If you have no logged-in Playwright session
 
-`playwright/schawceny_cdp.py` launches your real Chrome binary against a synced copy
+`playwright/schwaceny_cdp.py` launches your real Chrome binary against a synced copy
 of your logged-in profile with no automation flags, then attaches over CDP. This is
 the only variant that has to think about Cloudflare, and it beats it by never letting
 Playwright launch the browser.

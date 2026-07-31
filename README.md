@@ -1,11 +1,15 @@
-# Schawceny
+# Schwaceny
 
 Capture the audio you hear in **claude.ai voice mode** — the synthesized voice —
 to `.wav` + transcript, straight from the voice-mode WebSocket, inside your own
 authenticated browser session.
 
+> **The name.** *Schwa* is the phonetic term for the voiceless neutral vowel produced
+> in the centre of the mouth; *-ceny* from *larceny*, theft. Schwaceny — lifting the
+> voice.
+
 claude.ai voice mode is a speech-in / speech-out transport: your mic goes up as Opus,
-the synthesized reply comes back down as raw PCM. Schawceny wraps `window.WebSocket`,
+the synthesized reply comes back down as raw PCM. Schwaceny wraps `window.WebSocket`,
 keys on the `/api/ws/voice/` endpoint, collects the inbound 320-byte PCM frames, and
 assembles them into a 16 kHz / mono / 16-bit WAV. The reply text is reconstructed from
 the server's own `tts_word` frames, so each transcript is exactly what the voice said.
@@ -18,7 +22,7 @@ the server's own `tts_word` frames, so each transcript is exactly what the voice
 ## Quick start (userscript — recommended)
 
 1. Install Tampermonkey / Violentmonkey.
-2. Add [`userscript/schawceny.user.js`](userscript/schawceny.user.js).
+2. Add [`userscript/schwaceny.user.js`](userscript/schwaceny.user.js).
 3. Open claude.ai, start voice mode, talk. Each turn auto-downloads `.wav` + `.txt`.
 
 It's `@run-at document-start`, so it installs the tap before claude.ai opens the
@@ -29,10 +33,10 @@ Cloudflare.
 
 | Method | File | When |
 |---|---|---|
-| Userscript | `userscript/schawceny.user.js` | Default. Zero interaction, Cloudflare-proof. |
-| Console snippet | `console/schawceny-console.js` | One-off, no install. Toggle voice off/on after pasting. |
+| Userscript | `userscript/schwaceny.user.js` | Default. Zero interaction, Cloudflare-proof. |
+| Console snippet | `console/schwaceny-console.js` | One-off, no install. Toggle voice off/on after pasting. |
 | Playwright (existing session) | `docs/CAPTURE_METHODS.md` | You already have a logged-in Playwright/MCP browser. |
-| Playwright (CDP + real Chrome) | `playwright/schawceny_cdp.py` | Standalone; launches your real Chrome, attaches over CDP. |
+| Playwright (CDP + real Chrome) | `playwright/schwaceny_cdp.py` | Standalone; launches your real Chrome, attaches over CDP. |
 
 See [`docs/CAPTURE_METHODS.md`](docs/CAPTURE_METHODS.md) for details and
 [`docs/PROTOCOL.md`](docs/PROTOCOL.md) for the WebSocket protocol.

@@ -1,7 +1,7 @@
 # claude.ai voice-mode WebSocket — protocol notes
 
 Reverse-engineered from the client bundle and confirmed on the wire. This documents
-the transport Schawceny taps. All identifiers below are placeholders — substitute
+the transport Schwaceny taps. All identifiers below are placeholders — substitute
 your own session's values (they are visible in your browser's DevTools).
 
 ## Endpoint
@@ -45,7 +45,7 @@ To get audio out, real speech (or injected audio) has to go in.
 - `{"type":"client_metrics", ...}` telemetry
 - control JSON via `sendControl` — `interrupt`, `playback_complete`, `turn_end`, `flush`
 
-**Inbound (server → client)** — what Schawceny reads:
+**Inbound (server → client)** — what Schwaceny reads:
 - **binary 320-byte raw PCM frames** — 16 kHz / 16-bit / mono = one 10 ms frame each.
   This is the synthesized voice. Audio is **binary** (`ArrayBuffer` / `Blob`), not
   JSON/base64.
@@ -64,4 +64,4 @@ needed because `output_format` is fixed at `pcm_16000`.
 
 Connecting from Python/`websockets` with the exact cookies still 403s: the block is
 TLS/JA3 fingerprinting plus Cloudflare, not missing auth. The practical answer is to
-run inside a real browser session — which is exactly what Schawceny does.
+run inside a real browser session — which is exactly what Schwaceny does.

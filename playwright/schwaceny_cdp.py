@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-schawceny_cdp.py — attach to your REAL Google Chrome over CDP and auto-capture
+schwaceny_cdp.py — attach to your REAL Google Chrome over CDP and auto-capture
 claude.ai voice-mode audio to WAV + transcript.
 
 Why CDP-attach instead of launching Chromium: an automation-launched browser
@@ -16,7 +16,7 @@ Playwright tools), the simpler path is to drive that session directly — see
 
 Usage
   1. (recommended) Close your normal Chrome so the profile copy is clean.
-  2. python3 schawceny_cdp.py
+  2. python3 schwaceny_cdp.py
   3. In the Chrome window that opens (already on claude.ai), start a voice turn.
   4. Each turn auto-writes ./voice-captures/turnN-<ts>.wav + .txt
   Ctrl+C to stop.
@@ -36,7 +36,7 @@ from playwright.sync_api import sync_playwright
 
 PORT = 9222
 SRC_PROFILE = Path.home() / ".config/google-chrome"
-DST_PROFILE = Path.home() / ".schawceny-chrome-profile"
+DST_PROFILE = Path.home() / ".schwaceny-chrome-profile"
 OUTDIR = Path("./voice-captures")
 URL = "https://claude.ai/new"
 SILENCE_MS = 1500
@@ -59,8 +59,8 @@ CACHE_EXCLUDES = [
 # --- page-side tap: installed at document-start via CDP add_init_script ---
 INIT_SCRIPT = r"""
 (() => {
-  if (window.__schawcenyInstalled) return;
-  window.__schawcenyInstalled = true;
+  if (window.__schwacenyInstalled) return;
+  window.__schwacenyInstalled = true;
   const SR = %d, SILENCE_MS = %d, Orig = window.WebSocket;
   let seg = [], words = [], turnN = 0, timer = null;
   function wavB64(byteArrays) {
@@ -78,14 +78,14 @@ INIT_SCRIPT = r"""
   }
   function finalize(){ if(!seg.length) return; turnN++;
     const b64=wavB64(seg), text=words.map(w=>w.text).join('');
-    if (window.__schawcenySave) window.__schawcenySave(b64, text, turnN);
+    if (window.__schwacenySave) window.__schwacenySave(b64, text, turnN);
     seg=[]; words=[]; }
   function onAudio(b){ seg.push(b); clearTimeout(timer); timer=setTimeout(finalize, SILENCE_MS); }
   class TappedWS extends Orig {
     constructor(url, protocols){
       super(url, protocols);
       if (typeof url==='string' && url.includes('/api/ws/voice/')){
-        console.log('[schawceny] voice socket tapped');
+        console.log('[schwaceny] voice socket tapped');
         this.addEventListener('close', finalize);
         this.addEventListener('message', (ev)=>{ const d=ev.data;
           if (d instanceof ArrayBuffer) onAudio(new Uint8Array(d.slice(0)));
@@ -96,7 +96,7 @@ INIT_SCRIPT = r"""
     }
   }
   window.WebSocket = TappedWS;
-  console.log('[schawceny] tap installed at document-start');
+  console.log('[schwaceny] tap installed at document-start');
 })();
 """ % (SR, SILENCE_MS)
 
@@ -110,10 +110,10 @@ def find_chrome():
 
 def sync_profile():
     if not SRC_PROFILE.exists():
-        print(f"[schawceny] {SRC_PROFILE} not found — launching a fresh profile; you'll log in once (persists).")
+        print(f"[schwaceny] {SRC_PROFILE} not found — launching a fresh profile; you'll log in once (persists).")
         DST_PROFILE.mkdir(parents=True, exist_ok=True)
         return
-    print(f"[schawceny] syncing profile (login + Cloudflare trust) -> {DST_PROFILE}")
+    print(f"[schwaceny] syncing profile (login + Cloudflare trust) -> {DST_PROFILE}")
     DST_PROFILE.mkdir(parents=True, exist_ok=True)
     if shutil.which("rsync"):
         cmd = ["rsync", "-a", "--delete"]
@@ -123,7 +123,7 @@ def sync_profile():
         cmd += [f"{SRC_PROFILE}/", f"{DST_PROFILE}/"]
         subprocess.run(cmd, check=False)
     else:
-        print("[schawceny] rsync not found — falling back to cp -a (slower, copies caches too)")
+        print("[schwaceny] rsync not found — falling back to cp -a (slower, copies caches too)")
         subprocess.run(["cp", "-a", f"{SRC_PROFILE}/.", f"{DST_PROFILE}/"], check=False)
         for e in CACHE_EXCLUDES:
             for p in DST_PROFILE.glob(f"**/{e}"):
@@ -150,9 +150,9 @@ def wait_for_devtools(timeout=25):
 def main():
     chrome = find_chrome()
     if not chrome:
-        print("[schawceny] ERROR: no Google Chrome binary found. Install Chrome or edit CHROME_CANDIDATES.")
+        print("[schwaceny] ERROR: no Google Chrome binary found. Install Chrome or edit CHROME_CANDIDATES.")
         return 1
-    print(f"[schawceny] chrome: {chrome}")
+    print(f"[schwaceny] chrome: {chrome}")
 
     OUTDIR.mkdir(exist_ok=True)
     sync_profile()
@@ -166,10 +166,10 @@ def main():
          "about:blank"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
-    print(f"[schawceny] launched Chrome (pid {proc.pid}) with CDP on :{PORT}")
+    print(f"[schwaceny] launched Chrome (pid {proc.pid}) with CDP on :{PORT}")
 
     if not wait_for_devtools():
-        print("[schawceny] ERROR: CDP endpoint never came up. Is another Chrome using this profile/port?")
+        print("[schwaceny] ERROR: CDP endpoint never came up. Is another Chrome using this profile/port?")
         proc.terminate()
         return 1
 
@@ -185,28 +185,28 @@ def main():
             wav = OUTDIR / f"turn{turn_no}-{ts}.wav"
             wav.write_bytes(base64.b64decode(b64wav))
             dur = (wav.stat().st_size - 44) / (SR * 2)
-            line = f"[schawceny] turn {turn_no}: {wav.name}  (~{dur:.1f}s)"
+            line = f"[schwaceny] turn {turn_no}: {wav.name}  (~{dur:.1f}s)"
             if transcript.strip():
                 (OUTDIR / f"turn{turn_no}-{ts}.txt").write_text(transcript.strip() + "\n")
                 line += f'  "{transcript.strip()[:50]}"'
             print(line, flush=True)
 
-        ctx.expose_binding("__schawcenySave", save_turn)
+        ctx.expose_binding("__schwacenySave", save_turn)
         ctx.add_init_script(INIT_SCRIPT)
 
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         page.goto(URL)
 
-        print("\n[schawceny] Chrome is on claude.ai. If not logged in, log in once (profile persists).")
-        print("[schawceny] Start a voice turn and talk — each response auto-saves. Ctrl+C to quit.\n")
+        print("\n[schwaceny] Chrome is on claude.ai. If not logged in, log in once (profile persists).")
+        print("[schwaceny] Start a voice turn and talk — each response auto-saves. Ctrl+C to quit.\n")
         try:
             # Monitor browser connectivity, NOT the launcher PID: Chrome re-execs itself
             # on startup, orphaning the process we spawned, so proc.poll() would false-positive.
             while browser.is_connected():
                 time.sleep(1)
-            print("[schawceny] browser disconnected.")
+            print("[schwaceny] browser disconnected.")
         except KeyboardInterrupt:
-            print(f"\n[schawceny] stopping — {turn_counter['n']} turn(s) captured to {OUTDIR.resolve()}")
+            print(f"\n[schwaceny] stopping — {turn_counter['n']} turn(s) captured to {OUTDIR.resolve()}")
         finally:
             try:
                 proc.terminate()
